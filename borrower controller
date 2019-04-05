@@ -1,0 +1,89 @@
+   loadBorrowerEmpWrapper: function(component, event){
+        var borrowerEmploymentWrapper = component.get("v.loadBorrower").borrowerEmployementHistoryList;
+        var borrowerCurrentEmployment = borrowerEmploymentWrapper.filter(function (el) {
+            return el.RD_URLA_Employment_Type__c == "Current Employment"
+        });
+        component.set("v.loadCurrentEmployment",borrowerCurrentEmployment);
+        var borrowerAdditionalEmployment = borrowerEmploymentWrapper.filter(function (el) {
+            return el.RD_URLA_Employment_Type__c == "Additional Employment"
+        });
+        var additionalLength = borrowerAdditionalEmployment.length;
+        component.set("v.isAEVisible",true);
+        for(var i=0; i<additionalLength; i++){
+            component.set("v.loadAdditionalEmployment",borrowerAdditionalEmployment);
+            console.log("****"+JSON.stringify(borrowerAdditionalEmployment[i]));
+            /*
+            $A.createComponent(
+                "c:RD_URLA_Borrower_Employment",
+                {
+                    setCurrentEmployment: borrowerAdditionalEmployment[i],// this is wrong you have to pass into the component with 
+                    typeOfEmployment: "Additional Employment"
+                    
+                },
+                function(newAddEmpCmp, status, errorMessage){
+                    if (status==="SUCCESS") {
+                        var body = component.get("v.firstAddEmpBody");
+                        console.log("body >>>>"+body);
+                        body.push(newAddEmpCmp);
+                        component.set("v.firstAddEmpBody", body);
+                    }
+                    else if (status==="INCOMPLETE") {
+                        helper.toastEvent(component, event,'Error',"No response from server or client is offline.",'Error');
+                    }
+                        else if (status==="ERROR") {
+                            helper.toastEvent(component, event,'Error',errorMessage,'Error');
+                        }
+                }
+            );
+            */
+        }
+        var borrowerPreviousEmployment = borrowerEmploymentWrapper.filter(function (el) {
+            return el.RD_URLA_Employment_Type__c =="Previous Employment"
+        });
+    },
+    loadAddressWrapper : function(component, event){
+       
+        var borrowerAddressWrapper = component.get("v.loadBorrower").borrowerAddressList;
+        var filteredCurrentAddress = borrowerAddressWrapper.filter(function (el) {
+            return el.RD_URLA_Address_Type__c == "Current Address"
+        });
+        var filteredCurrentAddressLength = filteredCurrentAddress.length;
+        component.set("v.isCEVisible", true);
+        component.set("v.loadBorrowerCurrentAddress",filteredCurrentAddress);
+        var filteredFormerAddress = borrowerAddressWrapper.filter(function (el) {
+            return el.RD_URLA_Address_Type__c == "Former Address"
+        });
+        var filteredFormerAddressLength = filteredFormerAddress.length;
+        console.log("Filtered Former Address : " +JSON.stringify(filteredFormerAddress));
+        var filteredMailingAddress = borrowerAddressWrapper.filter(function (el) {
+            return el.RD_URLA_Address_Type__c == "Mailing Address"
+        });
+        var filteredMailingAddressLength = filteredMailingAddress.length;
+        console.log("filter mailing address>>>> : " +JSON.stringify(filteredMailingAddress));
+        component.set("v.loadBorrowerMailingAddress",filteredMailingAddress);
+        for(var i=0;i<filteredFormerAddressLength;++i) {
+            //console.log("the value of "+JSON.stringify(filteredFormerAddress[i]));
+            $A.createComponent(
+                "c:RD_URLA_Borrower_Address", {
+                    newBorrowerAddress : filteredFormerAddress[i],
+                    typeOfAddress : "Former Address",
+                    isFormerAddr : true
+                },
+                function(newAddrCmp, status, errorMessage){
+                    if (status==="SUCCESS") {
+                        var body = component.get("v.addAddrBody");
+                        body.push(newAddrCmp);
+                        component.set("v.addAddrBody", body);
+                    }
+                    else if (status==="INCOMPLETE") {
+                        console.log("No response from server or client is offline.");
+                        helper.toastEvent(component, event,'Error',"No response from server or client is offline.",'Error');
+                    }
+                        else if (status==="ERROR") {
+                            console.log("Error: " + errorMessage);
+                            helper.toastEvent(component, event,'Error',errorMessage,'Error');
+                        }
+                }
+            );
+        }
+    },

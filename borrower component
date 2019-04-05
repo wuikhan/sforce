@@ -1,0 +1,128 @@
+
+<aura:component implements="forceCommunity:availableForAllPageTypes" access="global">
+    <aura:attribute name="newBorrower" type="RD_URLA_Borrower__c" 
+                    default="{'sobjectType': 'RD_URLA_Borrower__c',
+                             'RD_URLA_First_Name__c' :'','RD_URLA_Middle_Name__c':'','RD_URLA_Last_Name__c':'','RD_URLA_Suffix__c':'','RD_URLA_SSN__c':'','RD_URLA_DOB__c':'','RD_URLA_Citizenship__c':'',RD_URLA_Marital_Status__c:'',RD_URLA_Number_of_Dependents__c:''}"/>
+    
+    <aura:attribute name="netYears" type="Integer" default="0" />
+    <aura:attribute name="addrtype" type="String" required="false" description="" access="public" default="Current Address"/>
+    <aura:attribute name="typeOfEmployment" type="String" required="false" description="" access="public"/>
+    <aura:attribute name="isCEVisible" type="Boolean" default="false" />
+    <aura:attribute name="isAEVisible" type="Boolean" default="false" />
+    <aura:attribute name="isPEVisible" type="Boolean" default="false" />
+    <aura:attribute name="numAddEmpEvents" type="Integer" default="0"/>
+    <aura:attribute name="numPrevEmpEvents" type="Integer" default="0"/>
+    <aura:attribute name="isAdditional" type="boolean" required="false" default="false" description="Identifies if this is the additional employment section" access="public"/>
+    <aura:attribute name="isPrevAdditional" type="boolean" required="false" default="false" description="Identifies if this is the previous employment section" access="public"/>
+    <aura:attribute name="accordionLabel" type="String" required="false" description="name of the accordion" access="public" default="Additional Employment"/>
+    <aura:attribute name="accordionLabelPrev" type="String" required="false" description="name of the accordion" access="public" default="Previous Employment"/>
+    <!-- Attributes for adding the components dynamically to body - Added by  eti -->
+    <aura:attribute name="addAddrBody" type="Aura.Component[]" />
+    <aura:attribute name="addEmpBody" type="Aura.Component[]" />
+    <aura:attribute name="firstAddEmpBody" type="Aura.Component[]" />
+    <aura:attribute name="addPrevEmpBody" type="Aura.Component[]" /><!-- Added by  la-->
+    <aura:attribute name="firstPrevEmpBody" type="Aura.Component[]" />
+    <!-- retrieve application begins -->
+    <aura:attribute name="loadBorrower" type="object" />
+    <aura:handler name="change" value="{!v.loadBorrower}" action="{!c.handleBorrowerWrapper}"/>
+    <aura:attribute name="borrowerAddress" type="object" />
+    <aura:attribute name="loadBorrowerCurrentAddress" type="object" />
+     <aura:attribute name="loadBorrowerMailingAddress" type="object" />
+    <aura:attribute name="loadCurrentEmployment" type="object" />
+    <aura:attribute name="loadPreviousEmployment" type="object" />
+    <aura:attribute name="loadAdditionalIncome" type="object" />
+     <aura:handler event="c:RD_URLA_LoadLoanApplicationEvent" action="{!c.handleApplicationEvent}"/>
+    <!-- retrieve application ends -->
+    
+    <!-- Handler executed on load -->
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>
+    <!-- This handler is invoked when Current Address has years and months < 2 - Added by  eti-->
+    <aura:handler name="totalYearsEvent" event="c:RD_URLA_Borrower_Address_YearsEvent"  action="{!c.renderFormerAddress}"/> 
+    <!-- This handler is handled when the Same as Current Address checkbox is checked-->
+    <aura:handler name="mailingaddCheckboxChecked" action="{!c.handleCheckBox}" event="c:RD_URLA_Borrower_sameAsCurrentAddressChecked"/>
+    <!-- This handler is invoked when the Doesnot apply checkbox is checked under Additional Employment Section - Added by  eti-->
+    <aura:handler name="additionalEmpEvent" event="c:RD_URLA_Borrower_AdditionalEmpEvent" action="{!c.deleteAdditionalEmp}"/>
+    <aura:handler name="previousEmpEvent" event="c:RD_URLA_Borrower_PreviousEmpEvent" action="{!c.deletePreviousEmp}"/>
+    <!-- This handler is invoked when the Employer name is added in Additional Employment Section - Added by  eti-->
+    <aura:handler name="addAccordionLabel" event="c:RD_URLA_Borrower_EmploymentAccordion" action="{!c.addAccordionLabelOnEmp}"/>
+    <aura:handler name="addPrevAccordionLabel" event="c:RD_URLA_Borrower_PrevEmploymentAccordion" action="{!c.addAccordionLabelOnPrevEmpHelper}"/>
+    <!-- This handler is invoked when the Doesnot apply checkbox is checked under Previous Employment Section - Added by  la-->
+    <aura:handler name="previousEmpEvent" event="c:RD_URLA_Borrower_PreviousEmpEvent" action="{!c.deletePrevAdditionalEmp}"/>
+    <!--This handler is invoked when the remove additional employment button is clicked added by  lapally -->
+    <aura:handler name="removeAdditionalEmployment" event="c:RD_URLA_Borrower_DeleteEmploymentEvent" action="{!c.handleRemoveAdditionalEmployment}"/>
+    <aura:handler name="removePreviousEmployment" event="c:RD_URLA_Borrower_DeletePrevEmpEvent" action="{!c.handleRemovePreviousEmployment}"/>
+    <!--This handler is invoked when the previous employment name is changed added by  la-->
+    <aura:handler name="previousEmpEventName" event="c:RD_URLA_Borrower_PreviousEmp_NameEvent" action="{!c.PreviousEmpNameEventHandler}"/>
+    
+     <!--Application saving events and handlers and attributes added by dhruva-->
+    <aura:handler event="c:RD_URLA_SaveApplicationEvent" action="{!c.handleSaveAppEvent}"/>
+    <aura:registerEvent name="sendPropertyInformationTosave" type="c:RD_URLA_GetDataForSavingApplicationEvent"/>
+    <aura:attribute name="totalChildComponents" type="Integer" default="1"/>
+     <!--Application saving events and handlers and attributes added by dhruva-->
+    
+    <lightning:layout class="slds-page-header slds-page-header--object-home">
+        <lightning:accordion aura:id="accordion"  onsectiontoggle="{!c.handleToggleSection}" allowMultipleSectionsOpen="false">
+            <lightning:accordionSection name="personalInformation" label="Personal Information">
+                <c:RD_URLA_Borrower_BorrowerProfile  borrowerDetail="{!v.loadBorrower}"/>
+                <c:RD_URLA_Borrower_Address aura:id="currentAddress" typeOfAddress="{!v.addrtype}" borrowerAddDetail="{!v.loadBorrowerCurrentAddress}"/>
+                {!v.addAddrBody}
+                <c:RD_URLA_Borrower_Address aura:id="mailingAddress" typeOfAddress="Mailing Address" borrowerAddDetail="{!v.loadBorrowerMailingAddress}"/>
+            </lightning:accordionSection>
+            <lightning:accordionSection name="currentEmployment" label="Current Employment / Self Employment and Income" >
+			
+			
+			
+			
+			
+                <aura:if isTrue="{! v.isCEVisible }"><!-- On intial page load, conditionally load the component - Added by  eti -->
+                    <c:RD_URLA_Borrower_CurrentEmployment typeOfEmployment="Current Employment" setCurrentEmployment="{!v.loadCurrentEmployment}"/>
+                </aura:if>
+            </lightning:accordionSection>
+            <lightning:accordionSection name="additionalEmployment" label="Additional Employment / Self Employment and Income">
+                <aura:if isTrue="{! v.isAEVisible }"><!-- On intial page load, conditionally load the component - Added by  eti -->
+                    <aura:if isTrue="{! v.isAdditional }">
+                        <lightning:accordion aura:id="accordion"  activeSectionName="empSection" allowMultipleSectionsOpen="true" >
+                            <lightning:accordionSection name="empSection" label="{!v.accordionLabel}">
+                                {!v.firstAddEmpBody}
+                            </lightning:accordionSection>
+                        </lightning:accordion>
+                        <aura:set attribute="else">
+                            {!v.firstAddEmpBody}
+                        </aura:set>
+                    </aura:if>
+                    {!v.addEmpBody}
+                    <lightning:layoutItem padding="around-small">
+                        <lightning:button name="addAdditionalEmployment" disabled="true" aura:id="addAdditionalEmploymentBtn" variant="success" label="Add Additional Employment" title="Add Additional Employment" onclick="{! c.addAdditionalEmp}" />
+                    </lightning:layoutItem>
+                </aura:if>
+            </lightning:accordionSection>
+            <lightning:accordionSection name="previousEmployment" label="Previous Employment / Self Employment and Income">
+                <aura:if isTrue="{! v.isPEVisible }"><!-- On intial page load, conditionally load the component - Added by  la -->
+                    <aura:if isTrue="{! v.isPrevAdditional }">
+                        <lightning:accordion aura:id="accordionPrev"  activeSectionName="empSection" allowMultipleSectionsOpen="true" >
+                            <lightning:accordionSection name="empSection" label="{!v.accordionLabelPrev}">
+                                {!v.firstPrevEmpBody}
+                            </lightning:accordionSection>
+                        </lightning:accordion>
+                        <aura:set attribute="else">
+                            {!v.firstPrevEmpBody}
+                        </aura:set>
+                    </aura:if>
+                    {!v.addPrevEmpBody}
+                    <lightning:layoutItem padding="around-small">
+                        <lightning:button name="addPreviousEmployment" disabled="true" aura:id="addPreviousEmploymentBtn"  variant="success" label="Add Previous Employment" title="Add Additional Employment" onclick="{! c.addPreviousAdditionalEmp}" />
+                    </lightning:layoutItem>
+                </aura:if>
+            </lightning:accordionSection>
+			
+			
+			
+			
+			
+			
+            <lightning:accordionSection name="OtherIncome" label="Income from Other Sources">
+                <c:RD_URLA_Borrower_IncomeFromOtherSources setAdditionalIncome="{!v.loadAdditionalIncome}"/>
+            </lightning:accordionSection> 
+        </lightning:accordion>
+    </lightning:layout>
+</aura:component>

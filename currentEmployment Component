@@ -1,0 +1,567 @@
+<aura:component access="global" implements="force:appHostable,flexipage:availableForAllPageTypes" controller="RD_URLA_Borrower_CurrentEmploymentCtrl">
+    <aura:attribute name="currentEmployment" type="RD_URLA_Borrower_Employment_History__c" required="false" description="" access="public"
+                    default="{'RD_URLA_Does_Not_Apply__c':'false','RD_URLA_Employer_Name__c':'',
+                             'RD_URLA_Street_Address__c':'','RD_URLA_City__c':'','RD_URLA_State__c':'','RD_URLA_Zip_Code__c':'',
+                             'RD_URLA_Position_or_Title__c':'','RD_URLA_Start_Date__c':null, 'RD_URLA_End_Date__c' :null,
+                             'RD_URLA_Related_Borrower__c':null,'RD_URLA_Years__c' : '', 
+                             'RD_URLA_Months__c' : '','RD_URLA_Business_Owner_Self_Employed__c' : '','RD_URLA_Ownership_Share__c' : '', 
+                             'RD_URLA_Monthly_Income_or_Loss__c' : '','RD_URLA_Base__c' : '','RD_URLA_Overtime__c' : '',
+                             'RD_URLA_Bonus__c' : '','RD_URLA_Commision__c' : '','RD_URLA_Military_Entitlements__c' : '',
+                             'RD_URLA_Other__c' : '','RD_URLA_Phone__c':''}"/>
+    
+    <aura:attribute name="disableFields" type="boolean" default="false"/>
+    <aura:attribute name="stateOptions" type="List"/>
+    <aura:attribute name="ownershipOptions" type="List"/>
+    <aura:attribute name="phoneNumValid" type="boolean" default="true"/>
+    <aura:attribute name="businessOwned" type="boolean" default="false"/>
+    <aura:attribute name="nameBoolean" type="boolean" default="false"/>
+    <aura:attribute name="prevnameBoolean" type="boolean" default="false"/>
+    <aura:attribute name="stateBoolean" type="boolean" default="false"/>
+    <aura:attribute name="prevStartDatestateBoolean" type="boolean" default="false"/>
+    <aura:attribute name="prevEndDatestateBoolean" type="boolean" default="false"/>
+    <aura:attribute name="businessBoolean" type="boolean" default="false"/>
+    <aura:attribute name="typeOfEmployment" type="String" required="false" description="" access="public"/>
+    <aura:attribute name="isAdditional" type="boolean" required="false" default="false" description="Identifies if this is the additional employment section" access="public"/>
+    <aura:attribute name="componentId" type="Integer" required="false" default="0" description="Unique id for the component, assigned when Additional Employment button is clicked from Borrower component"/>
+    <aura:attribute name="displayError" type="boolean" default="false"/>
+    <aura:attribute name="startdateRequired" type="boolean" default="false" description="used to display error message when start date is not given"/>
+    <aura:attribute name="startdateRequiredMessage" type="String" default="Employment start Date format is mm/dd/yyyy and cannot be later than today's date."/>
+    <aura:attribute name="prevstartdateRequired" type="boolean" default="false" description="used to display error message when start date is not given"/>
+    <aura:attribute name="prevstartdateRequiredMessage" type="String" default="Employment Start Date must be a valid date in mm/dd/yyyy format and has to be earlier than today's date"/>
+    <aura:attribute name="prevenddateRequired" type="boolean" default="false" description="used to display error message when start date is not given"/>
+    <aura:attribute name="prevenddateRequiredMessage" type="String" default="Employment End Date must be a valid date in mm/dd/yyyy format and has to be earlier than today's date"/>
+    <aura:attribute name="prevStartDateEarlierStateBoolean" type="boolean" default="false" description="used to display error message when start date is not given"/>
+    <aura:attribute name="prevStartDateEarlierStateBooleanMessage" type="String" default="Start Date has to be prior to End Date"/>
+    <aura:attribute name="prevEndDateEarlierStateBoolean" type="boolean" default="false" description="used to display error message when start date is not given"/>
+    <aura:attribute name="prevEndDateEarlierStateBooleanMessage" type="boolean" default="End Date has to be later than Start Date"/>
+    <aura:attribute name="isPrevAdditional" type="boolean" required="false" default="false" description="Identifies if this is the previous additional employment section" access="public"/><!--Added by sridevi byla-->
+    <aura:attribute name="trueBoolean" type="boolean" default="true"/>
+    <aura:attribute name="nameRequired" type="boolean" default="true"/>
+    <!-- retrieve application begins -->
+     <aura:attribute name="setCurrentEmployment" type="object" />
+    <aura:handler name="change" value="{!v.setCurrentEmployment}" action="{!c.handleCurrentEmploymentWrapper}"/>
+    <!-- retrieve application ends -->
+    <!-- This Event is fired when Doesnot apply is checked or unchecked @Author Sirisha Duriseti -->
+    <aura:registerEvent name="additionalEmpEvent" type="c:RD_URLA_Borrower_AdditionalEmpEvent"/>
+    <!-- This Event is fired when Employer /Business name is added or updated @Author Sirisha Duriseti -->
+    <aura:registerEvent name="addAccordionLabel" type="c:RD_URLA_Borrower_EmploymentAccordion"/>
+    <aura:registerEvent name="addPrevAccordionLabel" type="c:RD_URLA_Borrower_PrevEmploymentAccordion"/>
+    <!--Author:Sridevi Byla : Event registration to handle previous employment button-Event created as RD_URLA_Borrower_PreviousEmpEvent-->
+    <aura:registerEvent name="previousEmpEvent" type="c:RD_URLA_Borrower_PreviousEmpEvent"/>
+    <!-- This Event is fired when the Remove Additional Employment is clicked @Author Dhruva Eppalapallu-->
+    <aura:registerEvent name="removeAdditionalEmployment" type="c:RD_URLA_Borrower_DeleteEmploymentEvent"/>
+    <aura:registerEvent name="removePreviousEmployment" type="c:RD_URLA_Borrower_DeletePrevEmpEvent"/>
+    <!-- This Event is fired when the user enter employer name in Previous Employment @Author Sridevi Byla-->
+    <aura:registerEvent name="previousEmpEventName" type="c:RD_URLA_Borrower_PreviousEmp_NameEvent"/>
+    <aura:handler event="c:RD_URLA_ValidateForSaveEvent" action="{!c.checkValidations}"/>
+    
+    <!--Saving application attributes and events added by dhruva -->
+       <!--This event is fired from the handler method of save application which sends the data back-->
+    <aura:registerEvent name="sendPropertyInformationTosave" type="c:RD_URLA_GetDataForSavingApplicationEvent"/>
+    <!--Saving application attributes and events added by dhruva -->
+    
+    <aura:handler name="init" value="{!this}" action="{!c.doInit}"/>  
+    <lightning:layout multipleRows="true" verticalAlign="center">
+        <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_large" smallDeviceSize="12" mediumDeviceSize="8" largeDeviceSize="8" ><br />
+            <lightning:layout multipleRows="true">
+                <aura:if isTrue="{!v.typeOfEmployment != 'Previous Employment'}"><!-- Added by Sridevi Byla to handle previous Emp fields-->
+                    <aura:if isTrue="{!!v.isAdditional}">
+                        <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                            <lightning:input aura:id="doesNotApply" 
+                                             name="doesNotApply" 
+                                             label="{!$Label.c.RD_URLA_Does_not_apply}" 
+                                             class="bold"
+                                             type="checkbox" 
+                                             value="{!v.currentEmployment.RD_URLA_Does_Not_Apply__c}"
+                                             onchange="{!c.doesNotApplyChecked}"/>
+                        </lightning:layoutItem>
+                        <aura:set attribute="else">
+                            <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                                <lightning:button variant="destructive" label="Remove Additional Employment" title="Clear action" onclick="{!c.destroyAdditionalComponent}" class="clearBtnCSS"/>
+                            </lightning:layoutItem>
+                        </aura:set>
+                    </aura:if>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="name" label="{!$Label.c.RD_URLA_Employer_Name}"
+                                         name="{!$Label.c.RD_URLA_Employer_Name}"
+                                         value="{!v.currentEmployment.RD_URLA_Employer_Name__c}"
+                                         type="text"
+                                         maxlength="150"
+                                         disabled="{!v.disableFields}"
+                                         messageWhenValueMissing="Please enter a value"
+                                         pattern="^[a-zA-Z0-9 -]*$"
+                                         messageWhenPatternMismatch ="Employer or Business Name cannot contain special characters"
+                                         onchange="{!c.changeName}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Employer_Name}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="phone" label="{!$Label.c.RD_URLA_Phone}"
+                                         name="{!$Label.c.RD_URLA_Phone}"
+                                         value="{!v.currentEmployment.RD_URLA_Phone__c}"
+                                         type="tel"
+                                         disabled="{!v.disableFields}"
+                                         maxlength="12"
+                                         pattern="([0-9]{3}[0-9]{3}[0-9]{4}|[0-9]{3}-[0-9]{3}-[0-9]{4})"
+                                         messageWhenPatternMismatch="Phone has to be a number which is not greater than 10 digits or less than 10 digits"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Phone}"
+                                         onblur="{!c.formatPhoneNumber}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="address" label="{!$Label.c.RD_URLA_Street_Addres}"
+                                         name="{!$Label.c.RD_URLA_Street_Addres}"
+                                         value="{!v.currentEmployment.RD_URLA_Street_Address__c}"
+                                         type="text"
+                                         maxlength="50"
+                                         disabled="{!v.disableFields}"
+                                         messageWhenValueMissing="Please provide a value"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_empl_help_Street_Address}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <label id="cityLabel" class="slds-form-element__label" for="city">
+                            {!$Label.c.RD_URLA_City}
+                        </label>
+                        <lightning:helptext content="{!$Label.c.RD_URLA_help_City_Borrower}"/>
+                        <lightning:input aura:id="city" label="{!$Label.c.RD_URLA_City}"
+                                         name="{!$Label.c.RD_URLA_City}"
+                                         value="{!v.currentEmployment.RD_URLA_City__c}"
+                                         class="label-hidden"
+                                         type="text"
+                                         maxlength="35"
+                                         disabled="{!v.disableFields}"
+                                         messageWhenValueMissing="Enter a valid city name"
+                                         ariaLabelledBy="cityLabel"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <label class="slds-form-element__label" for="state">
+                            {!$Label.c.RD_URLA_State}
+                        </label>
+                        <lightning:helptext content="{!$Label.c.RD_URLA_help_State}"/>
+                        <lightning:select aura:id="state" label="{!$Label.c.RD_URLA_State}"
+                                          value="{!v.currentEmployment.RD_URLA_State__c}"
+                                          variant="label-hidden"
+                                          disabled="{!v.disableFields}"
+                                          name="{!$Label.c.RD_URLA_State}">
+                            <option value="">Choose One</option>
+                            <aura:iteration var="sopt" items="{!v.stateOptions}">
+                                <option value="{!sopt.value}">{!sopt}</option>
+                            </aura:iteration>
+                        </lightning:select>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="zipCode" label="{!$Label.c.RD_URLA_Zip}"
+                                         name="{!$Label.c.RD_URLA_Zip}"
+                                         value="{!v.currentEmployment.RD_URLA_Zip_Code__c}"
+                                         type="text"
+                                         pattern="(\d{5}$|\d{5}-\d{4}$)"
+                                         maxlength="10"
+                                         disabled="{!v.disableFields}"
+                                         messageWhenPatternMismatch="Zip Code must be numeric in 99999 or 99999-9999 format"
+                                         onchange="{!c.formatZipCode}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Zip_Code_Borrower}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        <lightning:formattedUrl value="{!$Label.c.RD_URLA_Zip_Code_Lookup}"  label="Zip Code Lookup" target="_blank"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="position" label="{!$Label.c.RD_URLA_Position_or_Title}"
+                                         name="{!$Label.c.RD_URLA_Position_or_Title}"
+                                         value="{!v.currentEmployment.RD_URLA_Position_or_Title__c}"
+                                         type="text"
+                                         maxlength="25"
+                                         disabled="{!v.disableFields}"
+                                         pattern="^[a-zA-Z0-9 -]*$"
+                                         messageWhenPatternMismatch ="Position or Title cannot have special characters"
+                                         onblur="{!c.checkNameRequiredErrorMessages}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Position_or_Title}"/>
+                        <aura:if isTrue="{!v.nameBoolean}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Position or Title must be entered</div>
+                            </div>
+                        </aura:if>
+                    </lightning:layoutItem>
+                    
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <label class="slds-form-element__label" for="date">
+                            {!$Label.c.RD_URLA_Start_Date}
+                        </label>
+                        <lightning:helptext content="{!$Label.c.RD_URLA_help_Start_Date}"/>
+                        <ui:inputDate aura:id="date" label="{!$Label.c.RD_URLA_Start_Date}"
+                                      value="{!v.currentEmployment.RD_URLA_Start_Date__c}"
+                                      displayDatePicker="true"
+                                      required="false"
+                                      class="slds-input"
+                                      labelClass="hidden"
+                                      change="{!c.validateDate}"
+                                      disabled="{!v.disableFields}"
+                                      format="MM/DD/YYYY"/>
+                        <aura:if isTrue="{!v.startdateRequired}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Employment Start Date must be a valid date in mm/dd/yyyy format and cannot be later than today's date.</div>
+                            </div>
+                        </aura:if>
+                        <aura:if isTrue="{!v.stateBoolean}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Employment Start Date must be entered</div>
+                            </div>
+                        </aura:if>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium">
+                        How long in this line of work?
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="years" label="{!$Label.c.RD_URLA_Years}"
+                                         name="{!$Label.c.RD_URLA_Years}"
+                                         value="{!v.currentEmployment.RD_URLA_Years__c}"
+                                         type="number"
+                                         messageWhenValueMissing="Years must be numeric and within the range of (0-99)"
+                                         messageWhenBadInput="Years must be numeric and within the range of (0-99)"
+                                         messageWhenRangeOverflow="Years must be numeric and within the range of (0-99)"
+                                         messageWhenRangeUnderflow="Years must be numeric and within the range of (0-99)"
+                                         pattern="[0-9]*"
+                                         messageWhenPatternMismatch="Years must be numeric and within the range of (0-99)"
+                                         min="0"
+                                         max="99"
+                                         maxlength="2"
+                                         disabled="{!v.disableFields}"
+                                         onchange="{!c.lengthYear}"
+                                         onblur="{!c.calculateNetYearMonths}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Years_How_long_in_this_line_of_work}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="months" label="{!$Label.c.RD_URLA_Months}"
+                                         name="{!$Label.c.RD_URLA_Months}"
+                                         value="{!v.currentEmployment.RD_URLA_Months__c}"
+                                         type="number"
+                                         messageWhenValueMissing="Months must be numeric and should not be greater than 999."
+                                         messageWhenBadInput="Months must be numeric and should not be greater than 999."
+                                         messageWhenRangeOverflow="Months must be numeric and should not be greater than 999."
+                                         messageWhenRangeUnderflow="Months must be numeric and should not be greater than 999."
+                                         pattern="[0-9]*"
+                                         messageWhenPatternMismatch="Months must be numeric and should not be greater than 999"
+                                         min="0"
+                                         max="999"
+                                         maxlength="3"
+                                         disabled="{!v.disableFields}"
+                                         onchange="{!c.lengthMonth}"
+                                         onblur="{!c.calculateNetYearMonths}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Months}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium">
+                        <lightning:input aura:id="businessCheck" label="{!$Label.c.RD_URLA_Business_Owner_Self_Employed}"
+                                         name="{!$Label.c.RD_URLA_Business_Owner_Self_Employed}"
+                                         value="{!v.currentEmployment.RD_URLA_Business_Owner_Self_Employed__c}"
+                                         type="checkbox"
+                                         class="label-bold"
+                                         disabled="{!v.disableFields}"
+                                         onchange="{!c.businessOwnerChecked}"
+                                         checked="{!v.businessBoolean}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Business_Owner_Self_Employed}"/>
+                    </lightning:layoutItem>
+                    <aura:if isTrue="{!and(v.businessBoolean, v.displayError)}">
+                        <div class="slds-form-element slds-has-error">
+                            <div class="slds-form-element__help" id="error-message-unique-id">Please choose the ownership share since you have checked that you are self employed or a business owner</div>
+                        </div>
+                    </aura:if>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:radioGroup aura:id="ownership"
+                                              name="ownership"
+                                              value="{!v.currentEmployment.RD_URLA_Ownership_Share__c}"
+                                              type="radio"
+                                              disabled="{!or(!v.businessOwned) || v.disableFields}"
+                                              options="{!v.ownershipOptions}"
+                                              onchange="{! c.radioGroupSelected}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="income" label="{!$Label.c.RD_URLA_Monthly_Income_or_Loss}"
+                                         name="{!$Label.c.RD_URLA_Monthly_Income_or_Loss}"
+                                         value="{!v.currentEmployment.RD_URLA_Monthly_Income_or_Loss__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         placeholder="$0.00"
+                                         messageWhenBadInput="Monthly Income/Loss must be numeric and should not be greater than $999,999,999.99 if you are self employed/business owner"
+                                         messageWhenRangeOverflow="Monthly Income/Loss must be numeric and should not be greater than $999,999,999.99 if you are self employed/business owner"
+                                         messageWhenRangeUnderflow="Monthly Income/Loss must be numeric and should not be greater than $999,999,999.99 if you are self employed/business owner"
+                                         disabled="{!or(!v.businessOwned) || v.disableFields}"
+                                         onchange="{!c.changeIncome}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Monthly_Income_or_Loss}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small bold">
+                        Gross Monthly Income
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="10" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="base" label="{!$Label.c.RD_URLA_Base_Income}"
+                                         name="{!$Label.c.RD_URLA_Base_Income}"
+                                         value="{!v.currentEmployment.RD_URLA_Base__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         placeholder="$0.00"
+                                         min="0"
+                                         max="999999999.99"
+                                         messageWhenBadInput="Base Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeOverflow="Base Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeUnderflow = "Base Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         disabled="{!or(v.disableFields || v.businessOwned)}"
+                                         onchange="{!c.changeBase}"
+                                         onblur="{!c.updateTotal}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Base_Income}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="2" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        / month
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="10" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="overtime" label="{!$Label.c.RD_URLA_Overtime}"
+                                         name="{!$Label.c.RD_URLA_Overtime}"
+                                         value="{!v.currentEmployment.RD_URLA_Overtime__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         min="0"
+                                         max="999999999.99"
+                                         messageWhenBadInput="Overtime Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeOverflow="Overtime Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeUnderflow ="Overtime Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         placeholder="$0.00"
+                                         disabled="{!or(v.disableFields || v.businessOwned)}"
+                                         onchange="{!c.changeOvertime}"
+                                         onblur="{!c.updateTotal}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Overtime_Borrower}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="2" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        / month
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="10" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="bonus" label="{!$Label.c.RD_URLA_Bonuses}"
+                                         name="{!$Label.c.RD_URLA_Bonuses}"
+                                         value="{!v.currentEmployment.RD_URLA_Bonus__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         min="0"
+                                         max="999999999.99"
+                                         messageWhenBadInput="Bonus Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeOverflow="Bonus Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeUnderflow ="Bonus Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         placeholder="$0.00"
+                                         disabled="{!or(v.disableFields || v.businessOwned)}"
+                                         onchange="{!c.changeBonus}"
+                                         onblur="{!c.updateTotal}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Bonus_Borrower}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="2" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        / month
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="10" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="commissions" label="{!$Label.c.RD_URLA_Commissions}"
+                                         name="{!$Label.c.RD_URLA_Commissions}"
+                                         value="{!v.currentEmployment.RD_URLA_Commision__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         min="0"
+                                         max="999999999.99"
+                                         messageWhenBadInput="Commission Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeOverflow="Commission Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeUnderflow="Commission Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         placeholder="$0.00"
+                                         disabled="{!or(v.disableFields || v.businessOwned)}"
+                                         onchange="{!c.changeCommissions}"
+                                         onblur="{!c.updateTotal}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Commission_Borrower}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="2" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        / month
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="10" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="military" label="{!$Label.c.RD_URLA_Military_Entitlements}"
+                                         name="{!$Label.c.RD_URLA_Military_Entitlements}"
+                                         value="{!v.currentEmployment.RD_URLA_Military_Entitlements__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         min="0"
+                                         max="999999999.99"
+                                         messageWhenBadInput="Military Entitlements Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeOverflow="Military Entitlements Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeUnderflow="Military Entitlements Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         placeholder="$0.00"
+                                         disabled="{!or(v.disableFields || v.businessOwned)}"
+                                         onchange="{!c.changeMilitary}"
+                                         onblur="{!c.updateTotal}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Military_Entitlements}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="2" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        / month
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="10" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="other" label="{!$Label.c.RD_URLA_Other}"
+                                         name="{!$Label.c.RD_URLA_Other}"
+                                         value="{!v.currentEmployment.RD_URLA_Other__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         min="0"
+                                         max="999999999.99"
+                                         messageWhenBadInput="Other Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeOverflow="Other Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         messageWhenRangeUnderflow="Other Monthly Employment Income must be numeric and cannot be less than $0.00 or greater than $999,999,999.99"
+                                         placeholder="$0.00"
+                                         disabled="{!or(v.disableFields || v.businessOwned)}"
+                                         onchange="{!c.changeOther}"
+                                         onblur="{!c.updateTotal}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Other_Borrower}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="2" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        / month
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="10" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="total" label="{!$Label.c.RD_URLA_Total}"
+                                         name="{!$Label.c.RD_URLA_Total}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         placeholder="$0.00"
+                                         disabled="{!v.trueBoolean}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="2" flexibility="auto" class="slds-p-left_medium slds-p-top_x-large">
+                        / month
+                    </lightning:layoutItem>
+                </aura:if>
+                <!-- User story 3.6 Add  previous Employment section - Added by Sridevi Byla -->
+                <aura:if isTrue="{!v.typeOfEmployment == 'Previous Employment'}">
+                    <aura:if isTrue="{!!v.isPrevAdditional}">
+                        <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                            <lightning:input aura:id="prevdoesNotApply" 
+                                             name="doesNotApply" 
+                                             label="{!$Label.c.RD_URLA_Does_not_apply}"
+                                             class="bold"
+                                             type="checkbox" 
+                                             value="{!v.currentEmployment.RD_URLA_Does_Not_Apply__c}"
+                                             onchange="{!c.prevdoesNotApplyChecked}"/>
+                        </lightning:layoutItem>
+                        <aura:set attribute="else">
+                            <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                                <lightning:button variant="destructive" label="Remove Previous Employment" title="Clear action" onclick="{!c.destroyPreviousComponent}" class="clearBtnCSS"/>
+                            </lightning:layoutItem>
+                        </aura:set>
+                    </aura:if>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="prevname" label="{!$Label.c.RD_URLA_Employer_Name}"
+                                         name="{!$Label.c.RD_URLA_Employer_Name}"
+                                         value="{!v.currentEmployment.RD_URLA_Employer_Name__c}"
+                                         type="text"
+                                         maxlength="150"
+                                         disabled="{!v.disableFields}"
+                                         messageWhenValueMissing="Please enter a value"
+                                         pattern="^[a-zA-Z0-9 -]*$"
+                                         messageWhenPatternMismatch ="Employer or Business Name cannot contain special characters"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Employer_Name}"
+                                         onchange="{!c.prevEmploymentChangeName}"
+                                         onblur="{!c.prevchangeName}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="prevPosition" label="{!$Label.c.RD_URLA_Position_or_Title}"
+                                         name="{!$Label.c.RD_URLA_Position_or_Title}"
+                                         value="{!v.currentEmployment.RD_URLA_Position_or_Title__c}"
+                                         type="text"
+                                         maxlength="25"
+                                         onblur="{!c.prevCheckNameRequiredErrorMessages}"
+                                         pattern="^[a-zA-Z0-9 -]*$"
+                                         messageWhenPatternMismatch ="Position or Title cannot have special characters"
+                                         disabled="{!v.disableFields}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Position_or_Title}"/>
+                        <aura:if isTrue="{!v.prevnameBoolean}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Position or Title must be entered</div>
+                            </div>
+                        </aura:if>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <label class="slds-form-element__label" for="prevStartDate">
+                            {!$Label.c.RD_URLA_Start_Date}
+                        </label>
+                        <lightning:helptext content="{!$Label.c.RD_URLA_help_Start_Date}"/>
+                        <ui:inputDate aura:id="prevStartDate" label="{!$Label.c.RD_URLA_Start_Date}"
+                                      value="{!v.currentEmployment.RD_URLA_Start_Date__c}"
+                                      displayDatePicker="true" 
+                                      required="false"
+                                      class="slds-input"
+                                      labelClass="hidden"
+                                      change="{!c.prevValidateStartDate}"
+                                      disabled="{!v.disableFields}"
+                                      format="MM/DD/YYYY"/>
+                        <aura:if isTrue="{!v.prevstartdateRequired}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Employment Start Date must be a valid date in mm/dd/yyyy format and has to be earlier than today's date</div>
+                            </div>
+                        </aura:if>
+                        <aura:if isTrue="{!v.prevStartDatestateBoolean}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Employment Start Date must be entered</div>
+                            </div>
+                        </aura:if>
+                        <aura:if isTrue="{!v.prevStartDateEarlierStateBoolean}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Start Date has to be prior to End Date</div>
+                            </div>
+                        </aura:if>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="6" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <label class="slds-form-element__label" for="prevEndDate">
+                            {!$Label.c.RD_URLA_End_Date}
+                        </label>
+                        <lightning:helptext content="{!$Label.c.RD_URLA_help_End_Date}"/>
+                        <ui:inputDate aura:id="prevEndDate" label="{!$Label.c.RD_URLA_End_Date}"
+                                      value="{!v.currentEmployment.RD_URLA_End_Date__c}"
+                                      displayDatePicker="true" 
+                                      required="false"
+                                      class="slds-input"
+                                      labelClass="hidden"
+                                      change="{!c.prevValidateEndDate}"
+                                      disabled="{!v.disableFields}"
+                                      format="MM/DD/YYYY"/>
+                        <aura:if isTrue="{!v.prevenddateRequired}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Employment End Date must be a valid date in mm/dd/yyyy format and has to be earlier than today's date</div>
+                            </div>
+                        </aura:if>
+                        <aura:if isTrue="{!v.prevEndDatestateBoolean}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">Employment End Date must be entered</div>
+                            </div>
+                        </aura:if>
+                        <aura:if isTrue="{!v.prevEndDateEarlierStateBoolean}">
+                            <div class="slds-form-element slds-has-error">
+                                <div class="slds-form-element__help" id="error-message-unique-id">End Date has to be later than Start Date</div>
+                            </div>
+                        </aura:if>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="businessCheck" label="{!$Label.c.RD_URLA_Business_Owner_Self_Employed}"
+                                         name="{!$Label.c.RD_URLA_Business_Owner_Self_Employed}"
+                                         value="{!v.currentEmployment.RD_URLA_Business_Owner_Self_Employed__c}"
+                                         type="checkbox"
+                                         disabled="{!v.disableFields}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Business_Owner_Self_Employed}"/>
+                    </lightning:layoutItem>
+                    <lightning:layoutItem size="12" flexibility="auto" class="slds-p-left_medium slds-p-bottom_small">
+                        <lightning:input aura:id="previncome" label="{!$Label.c.RD_URLA_Previous_Gross_Monthly_Income}"
+                                         name="{!$Label.c.RD_URLA_Previous_Gross_Monthly_Income}"
+                                         value="{!v.currentEmployment.RD_URLA_Previous_Gross_Monthly_Income__c}"
+                                         type="number"
+                                         formatter="currency"
+                                         step="0.01"
+                                         placeholder="$0.00"
+                                         messageWhenBadInput="Previous Monthly Income must be numeric and should be between $0 and $999,999,999.99."
+                                         messageWhenRangeOverflow="Previous Monthly Income must be numeric and should be between $0 and $999,999,999.99."
+                                         messageWhenRangeUnderflow="Previous Monthly Income must be numeric and should be between $0 and $999,999,999.99."
+                                         disabled="{!v.disableFields}"
+                                         onchange="{!c.prevChangeIncome}"
+                                         fieldLevelHelp="{!$Label.c.RD_URLA_help_Previous_Gross_Monthly_Income}"/>
+                    </lightning:layoutItem>
+                </aura:if>
+            </lightning:layout>
+        </lightning:layoutItem>
+    </lightning:layout>
+</aura:component>
